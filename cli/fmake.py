@@ -22,10 +22,6 @@ class TupleParam(click.ParamType):
     """'a,b,c' → (Path(...), ...) / 'all' / 'none' を解釈。"""
     name: str = "tuple"
 
-    def get_dirs(self) -> tuple[Path, ...]:
-        """プロジェクト直下のディレクトリを全件返す。"""
-        root = project_root()
-        return tuple(p for p in root.iterdir() if p.is_dir())
 
     def get_dirs_endswith_s(self) -> tuple[Path, ...]:
         """プロジェクト直下で末尾が 's' のディレクトリを全件返す。"""
@@ -46,10 +42,9 @@ class TupleParam(click.ParamType):
             if not parts:
                 return None
 
-            exists_dirs = set(self.get_dirs())  # Path の集合（O(1) 判定）
             paths = tuple(
                 path for name in parts
-                if (path := convert_dirname_to_dirpath(name)) in exists_dirs
+                if (path := convert_dirname_to_dirpath(name))
             )
             return paths
         except Exception:
@@ -61,29 +56,53 @@ class TupleParam(click.ParamType):
 class FileChecker:
     def __init__(self) -> None:
         self.root_path = project_root()
-        self.py_files_path = None
 
     def search_py_files(self, dirname: str | Path) -> list[Path]:
         """指定ディレクトリ内の .py ファイル一覧を Path で返す。"""
         dir_path = convert_dirname_to_dirpath(dirname)
         if not dir_path.exists() or not dir_path.is_dir():
             return []
-        self.py_files_path = [p for p in dir_path.iterdir() if p.is_file() and p.suffix == ".py"]
-        return self.py_files_path
+        py_file_paths =  sorted([p for p in dir_path.iterdir() if p.is_file() and p.suffix == ".py"])
+        return py_file_paths
 
     def print_py_file_path(self, py_file: Path) -> None:
         py_file_path = self.root_path / py_file
-        print(f"\t{py_file_path}")
+        print(f"\t{py_file_path.name}")
+        return
 
 class FileMaker:
     def __init__(self) -> None:
         self.root_path = project_root()
 
-    def setup_dir(self, dirname: str | Path) -> None:
-        dir_path = convert_dirname_to_dirpath(dirname)
-        dir_path.mkdir(exist_ok=True)
+    def setup_dir(self, dir_path: Path) -> str:
+        if dir_path.exists():
+            msg = f"{dir_path.name}-DIR exists."
+            return
+        if not dir_path.exists():
+            dir_path.mkdir()
+            msg = f"{dir_path.name}-DIR is created."
+            return
 
+    def setup_init_file(self, dir_path: Path) -> str:
+        init_file_path = dir_path / "__init__.py"
+        init_file_path.touch()
+        msg = f"{dir_path.name} initialized."
+        return msg
 
+    def make_py_files_in_total(self, dir_path: Path, total: int) -> list[str]:
+        dir_name = dir_path.name
+        msgs = []
+        for count in range(total):
+            idx = count + 1
+            file_path = dir_path / f"{dir_name}{idx:02d}.py"
+            if file_path.exists():
+                msg = f"{file_path.name} exists."
+                msgs.append(msg)
+            else:
+                file_path.touch()
+                msg = f"{file_path.name} is created."
+                msgs.append(msg)
+        return msgs
 
 TUPLE = TupleParam()
 
@@ -99,21 +118,53 @@ def check_files(dirnames: tuple[Path, ...] | None) -> None:
     for dirname in dirnames:
         py_files = fc.search_py_files(dirname)
         count = len(py_files)
-        click.echo(f"{dirname.name}-dir has {count}-py-files.")
+        click.echo(f"\n{dirname.name}-DIR")
         for pf in py_files:
             fc.print_py_file_path(pf)
-
     return
 
 def make_files(total: int, dirnames: tuple[Path, ...] | None) -> None:
+    if dirnames is None:
+        return
+
+    fm = FileMaker()
+
+    click.echo("====== DIR    ======")
+
+    dir_msgs = []
+    for dirname in dirnames:
+        msg = fm.setup_dir(dirname)
+        dir_msgs.append(msg)
+
+    for dir_msg in dir_msgs:
+        click.echo(dir_msg)
+
+    click.echo("====== INIT   ======")
+
+    init_msgs = []
+    for dir_path in dirnames:
+        msg = fm.setup_init_file(dir_path)
+        init_msgs.append(msg)
+
+    for init_msg in init_msgs:
+        click.echo(init_msg)
+
+    click.echo("====== FILE   ======")
+
+    file_msgs = []
+    for dirname in dirnames:
+        msgs = fm.make_py_files_in_total(dirname, total)
+        file_msgs.extend(msgs)
+
+    for file_msg in file_msgs:
+        click.echo(file_msg)
+
     return
-
-
 
 # --- CLI ---
 
 @click.command()
-@click.option("-t", "--total", default=12, type=int, help="ファイルの総数")
+@click.option("-t", "--total", default=3, type=int, help="ファイルの総数")
 @click.option("-d", "--dirnames", default="none", type=TUPLE, help="対象ディレクトリ")
 @click.option("-c", "--check", is_flag=True, help="確認モードかどうか。")
 def run(total: int, dirnames: tuple[Path, ...] | None, check: bool) -> None:
@@ -121,6 +172,9 @@ def run(total: int, dirnames: tuple[Path, ...] | None, check: bool) -> None:
         check_files(dirnames)
     else:
         make_files(total, dirnames)
+        click.echo("\n====== RESULT ======")
+        check_files(dirnames)
+        click.echo("")
     return
 
 
