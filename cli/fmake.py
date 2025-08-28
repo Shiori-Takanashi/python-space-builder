@@ -184,3 +184,6 @@ def run(total: int, dir_paths: tuple[Path, ...] | None, check: bool) -> None:
 
 if __name__ == "__main__":
     run()
+
+# trigger: dirnamesをdir_pathsとして適した変数名に変更？
+# => 変更できてない。ディレクトリ名を絶対パスに変更するポイントに違和感。
