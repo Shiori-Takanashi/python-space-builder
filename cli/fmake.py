@@ -10,7 +10,7 @@ def project_root() -> Path:
     return Path(__file__).parent.parent.resolve()
 
 
-def convert_dirname_to_dirpath(dirname: str | Path) -> Path:
+def convert_dirname_to_dirpath(dirname: str) -> Path:
     """相対ディレクトリ名（または Path）から絶対 Path を作る。"""
     root = project_root()
     return root / dirname
@@ -67,7 +67,7 @@ class FileChecker:
 
     def print_py_file_path(self, py_file: Path) -> None:
         py_file_path = self.root_path / py_file
-        print(f"\t{py_file_path.name}")
+        print(f"  >>>  {py_file_path.name}")
         return
 
 class FileMaker:
@@ -77,16 +77,19 @@ class FileMaker:
     def setup_dir(self, dir_path: Path) -> str:
         if dir_path.exists():
             msg = f"{dir_path.name}-DIR exists."
-            return
+            return msg
         if not dir_path.exists():
             dir_path.mkdir()
             msg = f"{dir_path.name}-DIR is created."
-            return
+            return msg
 
     def setup_init_file(self, dir_path: Path) -> str:
         init_file_path = dir_path / "__init__.py"
-        init_file_path.touch()
-        msg = f"{dir_path.name} initialized."
+        if init_file_path.exists():
+            msg = f"init.py in {dir_path.name} exists."
+        else:
+            init_file_path.touch()
+            msg = f"__init__.py in {dir_path.name} is created."
         return msg
 
     def make_py_files_in_total(self, dir_path: Path, total: int) -> list[str]:
@@ -109,22 +112,25 @@ TUPLE = TupleParam()
 
 # --- 分岐 ---
 
-def check_files(dirnames: tuple[Path, ...] | None) -> None:
+def check_files(dir_paths: tuple[Path, ...] | None) -> None:
     """タプルが使えるかどうかの検証 => OK"""
-    if dirnames is None:
+    if dir_paths is None:
         return
 
     fc = FileChecker()
-    for dirname in dirnames:
-        py_files = fc.search_py_files(dirname)
+
+    click.echo("====== RESULT ======")
+
+    for dir_path in dir_paths:
+        py_files = fc.search_py_files(dir_path)
         count = len(py_files)
-        click.echo(f"\n{dirname.name}-DIR")
+        click.echo(f"{dir_path.name}-DIR: {count:02d}-files")
         for pf in py_files:
             fc.print_py_file_path(pf)
     return
 
-def make_files(total: int, dirnames: tuple[Path, ...] | None) -> None:
-    if dirnames is None:
+def make_files(total: int, dir_paths: tuple[Path, ...] | None) -> None:
+    if dir_paths is None:
         return
 
     fm = FileMaker()
@@ -132,7 +138,7 @@ def make_files(total: int, dirnames: tuple[Path, ...] | None) -> None:
     click.echo("====== DIR    ======")
 
     dir_msgs = []
-    for dirname in dirnames:
+    for dirname in dir_paths:
         msg = fm.setup_dir(dirname)
         dir_msgs.append(msg)
 
@@ -142,7 +148,7 @@ def make_files(total: int, dirnames: tuple[Path, ...] | None) -> None:
     click.echo("====== INIT   ======")
 
     init_msgs = []
-    for dir_path in dirnames:
+    for dir_path in dir_paths:
         msg = fm.setup_init_file(dir_path)
         init_msgs.append(msg)
 
@@ -152,7 +158,7 @@ def make_files(total: int, dirnames: tuple[Path, ...] | None) -> None:
     click.echo("====== FILE   ======")
 
     file_msgs = []
-    for dirname in dirnames:
+    for dirname in dir_paths:
         msgs = fm.make_py_files_in_total(dirname, total)
         file_msgs.extend(msgs)
 
@@ -165,16 +171,14 @@ def make_files(total: int, dirnames: tuple[Path, ...] | None) -> None:
 
 @click.command()
 @click.option("-t", "--total", default=3, type=int, help="ファイルの総数")
-@click.option("-d", "--dirnames", default="none", type=TUPLE, help="対象ディレクトリ")
+@click.option("-d", "--dir_paths", default="none", type=TUPLE, help="対象ディレクトリ")
 @click.option("-c", "--check", is_flag=True, help="確認モードかどうか。")
-def run(total: int, dirnames: tuple[Path, ...] | None, check: bool) -> None:
+def run(total: int, dir_paths: tuple[Path, ...] | None, check: bool) -> None:
     if check:
-        check_files(dirnames)
+        check_files(dir_paths)
     else:
-        make_files(total, dirnames)
-        click.echo("\n====== RESULT ======")
-        check_files(dirnames)
-        click.echo("")
+        make_files(total, dir_paths)
+        check_files(dir_paths)
     return
 
 
