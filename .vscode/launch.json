@@ -6,12 +6,10 @@
             "name": "Python: Run CLI", // デバッグ名（GUIに表示される）
             "type": "debugpy", // デバッガの種類（例：python, node, cppdbg）
             "request": "launch", // "launch" なら新規起動, "attach" なら既存プロセスに接続
-            "program": "${workspaceFolder}/cli/fmake.py", // ← 正しい位置
+            "program": "${workspaceFolder}/cli/pbuild.py", // ← 正しい位置
             "args": [
-                "-t",
-                "1",
                 "-d",
-                "samples,logs"
+                "logs,samples"
             ], // コマンドライン引数
             "console": "integratedTerminal" // 実行コンソールの種類
         }
