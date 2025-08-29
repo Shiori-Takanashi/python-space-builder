@@ -1,7 +1,6 @@
-import logging
 import inspect
+import logging
 from pathlib import Path
-from typing import Iterable
 
 import click
 
@@ -78,7 +77,9 @@ class ListParam(click.ParamType):
     def get_dirnames_endswith_prac(self) -> list[str]:
         """root直下の_pracで終わるディレクトリ名を返却"""
         root = project_root()
-        return [p.name for p in root.iterdir() if p.is_dir() and p.name.endswith("_prac")]
+        return [
+            p.name for p in root.iterdir() if p.is_dir() and p.name.endswith("_prac")
+        ]
 
     def convert(self, value: str, param, ctx):
         v = value.strip()
@@ -95,7 +96,9 @@ class ListParam(click.ParamType):
         except Exception:
             self.fail(f"{value!r}は誤入力です", param, ctx)
 
+
 # --- 主要クラス ---
+
 
 class PracChecker:
     def __init__(self) -> None:
