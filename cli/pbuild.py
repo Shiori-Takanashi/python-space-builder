@@ -74,13 +74,11 @@ class ListParam(click.ParamType):
 
     name: str = "list"
 
-    def get_dirs_endswith_prac(self) -> List[str]:
+    def get_dirs_endswith_prac(self) -> list[str]:
         """プロジェクト直下で末尾が 's' のディレクトリを全件返す。"""
         root = project_root()
         # glob("*") でも可。引数なしの glob() は誤り。
-        return [
-            p for p in root.iterdir() if p.is_dir() and p.name.endswith("_prac")
-        ]
+        return [p for p in root.iterdir() if p.is_dir() and p.name.endswith("_prac")]
 
     def convert(self, value: str, param, ctx):
         v = value.strip()  # 両端だけ
@@ -183,9 +181,6 @@ class PracBuilder:
         return msgs
 
 
-
-
-
 # --- 分岐 ---
 
 # def check_files(dir_paths: tuple[Path, ...] | None) -> None:
@@ -246,6 +241,7 @@ class PracBuilder:
 # --- CLI ---
 
 LIST = ListParam()
+
 
 @click.command()
 @click.option("-t", "--total", default=3, type=int, help="ファイルの総数")
