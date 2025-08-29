@@ -57,20 +57,18 @@ class FileChecker:
     def __init__(self) -> None:
         self.root_path = project_root()
 
-    def search_py_files(self, dirname: str | Path) -> list[Path]:
+    def search_py_files(self, dir_path: Path) -> list[Path]:
         """指定ディレクトリ内の .py ファイル一覧を Path で返す。"""
-        dir_path = convert_dirname_to_dirpath(dirname)
         if not dir_path.exists() or not dir_path.is_dir():
             return []
         py_file_paths =  sorted([p for p in dir_path.iterdir() if p.is_file() and p.suffix == ".py"])
         return py_file_paths
 
-    def print_py_file_path(self, py_file: Path) -> None:
-        py_file_path = self.root_path / py_file
+    def print_py_file_path(self, py_file_path: Path) -> None:
         print(f"  >>>  {py_file_path.name}")
         return
 
-class FileMaker:
+class PracMaker:
     def __init__(self) -> None:
         self.root_path = project_root()
 
@@ -133,7 +131,7 @@ def make_files(total: int, dir_paths: tuple[Path, ...] | None) -> None:
     if dir_paths is None:
         return
 
-    fm = FileMaker()
+    fm = PracMaker()
 
     click.echo("====== DIR    ======")
 
