@@ -8,6 +8,7 @@ from code.path_manager import PathManager
 
 LIST = ListParam()
 
+
 @click.command()
 @click.option("-t", "--total", default=3, type=int, help="ファイルの総数")
 @click.option("-d", "--dirnames", default="none", type=LIST, help="対象ディレクトリ")
@@ -16,15 +17,14 @@ def run(total: int, dirnames: list[str] | None, check: bool) -> None:
     p_manager = PathManager()
     p_manager.load(dirnames)
 
+    # pc = PracChecker()
 
-    pc = PracChecker()
+    # for dirpath in dirpaths:
+    #     msg_about_dir = pc.return_about_dir(dirpath)
+    #     msg_about_pyfiles = pc.return_pyfiles_name(dirpath)
 
-    for dirpath in dirpaths:
-        msg_about_dir = pc.return_about_dir(dirpath)
-        msg_about_pyfiles = pc.return_pyfiles_name(dirpath)
-
-        msg = "\n".join([msg_about_dir, msg_about_pyfiles])
-        click.echo(msg)
+    #     msg = "\n".join([msg_about_dir, msg_about_pyfiles])
+    #     click.echo(msg)
 
 
 if __name__ == "__main__":

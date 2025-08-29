@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+from code.utils import project_root
 
 def count_logfile(logs_dirpath: Path) -> int:
     """既存の .log ファイル数をカウントして次の番号を返す。"""
