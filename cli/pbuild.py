@@ -1,4 +1,5 @@
 import logging
+import inspect
 from pathlib import Path
 from typing import Iterable
 
@@ -70,24 +71,23 @@ def get_loggers() -> logging.Logger:
 
 
 class ListParam(click.ParamType):
-    """'a,b,c' → (Path(...), ...) / 'all' / 'none' を解釈。"""
+    """clickをカスタムするためのクラス"""
 
     name: str = "list"
 
-    def get_dirs_endswith_prac(self) -> list[str]:
-        """プロジェクト直下で末尾が 's' のディレクトリを全件返す。"""
+    def get_dirnames_endswith_prac(self) -> list[str]:
+        """root直下の_pracで終わるディレクトリ名を返却"""
         root = project_root()
-        # glob("*") でも可。引数なしの glob() は誤り。
-        return [p for p in root.iterdir() if p.is_dir() and p.name.endswith("_prac")]
+        return [p.name for p in root.iterdir() if p.is_dir() and p.name.endswith("_prac")]
 
     def convert(self, value: str, param, ctx):
-        v = value.strip()  # 両端だけ
+        v = value.strip()
         if v.lower() == "none":
             return []
         if v.lower() == "all":
-            return self.get_dirs_endswith_prac()
+            return self.get_dirnames_endswith_prac()
         try:
-            # 各トークンにも strip、かつ空要素は除外
+            # stripは必須
             dirnames: list = sorted(p for p in (s.strip() for s in v.split(",")))
             if not dirnames:
                 return []
@@ -95,52 +95,34 @@ class ListParam(click.ParamType):
         except Exception:
             self.fail(f"{value!r}は誤入力です", param, ctx)
 
-
 # --- 主要クラス ---
-
 
 class PracChecker:
     def __init__(self) -> None:
         self.root_path = project_root()
 
+    @staticmethod
+    def get_error_msg(dirpath: Path) -> str:
+        caller = inspect.stack()[1].function
+        return f"Error: {dirpath.name}, {caller}"
+
     def return_about_dir(self, dirpath: Path) -> str:
         if not (dirpath.exists() and dirpath.is_dir()):
-            return f"ERROR: {dirpath.name}"
+            return self.get_error_msg(dirpath)
 
-        count = 0
-        for p in dirpath.iterdir():
-            if p.is_file() and p.suffix == ".py":
-                count += 1
-        msg = f"{dirpath.name}({count:02d})"
-        return msg
+        lst = [1 for p in dirpath.iterdir() if p.is_file() and p.suffix == ".py"]
+        count = sum(lst)
+        return f"{dirpath.name}({count:02d})"
 
     def return_pyfiles_name(self, dirpath: Path) -> str:
         if not (dirpath.exists() and dirpath.is_dir()):
-            return ""
+            return self.get_error_msg(dirpath)
+
         pyfiles_name = [
             p.name for p in dirpath.iterdir() if p.is_file() and p.suffix == ".py"
         ]
         pyfiles_name_with_tab = [f"\t{p}" for p in pyfiles_name]
-        msgs = sorted(pyfiles_name_with_tab)
-        if msgs:
-            msg = "\n".join(msgs)
-        return msg
-
-    def check(self, dirsnames: Iterable[Path]) -> list[str]:
-        return [""]
-
-    def search_py_files(self, dir_path: Path) -> list[Path]:
-        """指定ディレクトリ内の .py ファイル一覧を Path で返す。"""
-        if not dir_path.exists() or not dir_path.is_dir():
-            return []
-        py_file_paths = sorted(
-            [p for p in dir_path.iterdir() if p.is_file() and p.suffix == ".py"]
-        )
-        return py_file_paths
-
-    def print_py_file_path(self, py_file_path: Path) -> None:
-        print(f"  >>>  {py_file_path.name}")
-        return
+        return "\n".join(sorted(pyfiles_name_with_tab))
 
 
 class PracBuilder:
@@ -181,65 +163,6 @@ class PracBuilder:
         return msgs
 
 
-# --- 分岐 ---
-
-# def check_files(dir_paths: tuple[Path, ...] | None) -> None:
-#     """タプルが使えるかどうかの検証 => OK"""
-#     if dir_paths is None:
-#         return
-
-#     fc = FileChecker()
-
-#     click.echo("====== RESULT ======")
-
-#     for dir_path in dir_paths:
-#         py_files = fc.search_py_files(dir_path)
-#         count = len(py_files)
-#         click.echo(f"{dir_path.name}-DIR: {count:02d}-files")
-#         for pf in py_files:
-#             fc.print_py_file_path(pf)
-#     return
-
-# def make_files(total: int, dir_paths: tuple[Path, ...] | None) -> None:
-#     if dir_paths is None:
-#         return
-
-#     pb = PracBuilder()
-
-#     click.echo("====== DIR    ======")
-
-#     dir_msgs = []
-#     for dirname in dir_paths:
-#         msg = pb.setup_dir(dirname)
-#         dir_msgs.append(msg)
-
-#     for dir_msg in dir_msgs:
-#         click.echo(dir_msg)
-
-#     click.echo("====== INIT   ======")
-
-#     init_msgs = []
-#     for dir_path in dir_paths:
-#         msg = pb.setup_init_file(dir_path)
-#         init_msgs.append(msg)
-
-#     for init_msg in init_msgs:
-#         click.echo(init_msg)
-
-#     click.echo("====== FILE   ======")
-
-#     file_msgs = []
-#     for dirname in dir_paths:
-#         msgs = pb.make_py_files_in_total(dirname, total)
-#         file_msgs.extend(msgs)
-
-#     for file_msg in file_msgs:
-#         click.echo(file_msg)
-
-#     return
-
-# --- CLI ---
-
 LIST = ListParam()
 
 
@@ -248,12 +171,6 @@ LIST = ListParam()
 @click.option("-d", "--dirnames", default="none", type=LIST, help="対象ディレクトリ")
 @click.option("-c", "--check", is_flag=True, help="確認モードかどうか。")
 def run(total: int, dirnames: list[str] | None, check: bool) -> None:
-    # if check:
-    #     check_files(dir_paths)
-    # else:
-    #     make_files(total, dir_paths)
-    #     check_files(dir_paths)
-    # return
     dirnames_with_prac = [d + "_prac" for d in dirnames]
     dirpaths = sorted(
         convert_dirname_to_dirpath(dirname_with_prac)
@@ -272,6 +189,3 @@ def run(total: int, dirnames: list[str] | None, check: bool) -> None:
 
 if __name__ == "__main__":
     run()
-
-# trigger: dirnamesをdir_pathsとして適した変数名に変更？
-# => 変更できてない。ディレクトリ名を絶対パスに変更するポイントに違和感。
