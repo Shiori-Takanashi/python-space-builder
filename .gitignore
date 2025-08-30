@@ -28,6 +28,6 @@ samples
 
 .env
 
-prac_open_ai/
+# prac_open_ai/
 
 # prac_open_aiがmainブランチから消えたことを確認
