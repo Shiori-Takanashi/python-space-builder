@@ -20,14 +20,8 @@ EOF
 # src
 .vscode
 
-async_prac
-asyncs
-clicks
-logs_prac
-samples
+code/
+cli/
+tests
 
 .env
-
-# prac_open_ai/
-
-# prac_open_aiがmainブランチから消えたことを確認
